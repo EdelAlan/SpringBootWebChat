@@ -1,0 +1,110 @@
+CREATE TABLE exchange
+(
+  id integer NOT NULL DEFAULT nextval('untitled_table_id_seq'::regclass),
+  code character varying(25),
+  CONSTRAINT exchange_pkey PRIMARY KEY (id)
+)
+
+CREATE TABLE terminal_enclosure
+(
+  id integer NOT NULL DEFAULT nextval('untitled_table_id_seq'::regclass),
+  code character varying(25),
+  exchange_number integer,
+  tr_number integer,
+  CONSTRAINT terminal_enclosure_pkey PRIMARY KEY (id),
+  CONSTRAINT terminal_enclosure_exchange_number_fkey FOREIGN KEY (exchange_number)
+      REFERENCES exchange (id) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT terminal_enclosure_tr_number_fkey FOREIGN KEY (tr_number)
+      REFERENCES terminal_enclosure (id) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE NO ACTION
+)
+
+CREATE TABLE bay
+(
+  id serial NOT NULL,
+  description character varying(25),
+  exchange_id integer,
+  CONSTRAINT bay_pkey PRIMARY KEY (id),
+  CONSTRAINT bay_exchange_id_fkey FOREIGN KEY (exchange_id)
+      REFERENCES exchange (id) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE NO ACTION
+)
+
+CREATE TABLE shelf
+(
+  id serial NOT NULL,
+  description character varying(25),
+  bay_id integer,
+  CONSTRAINT shelf_pkey PRIMARY KEY (id),
+  CONSTRAINT shelf_bay_id_fkey FOREIGN KEY (bay_id)
+      REFERENCES bay (id) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE NO ACTION
+)
+
+CREATE TABLE slot
+(
+  id serial NOT NULL,
+  description character varying(25),
+  shelf_id integer,
+  CONSTRAINT slot_pkey PRIMARY KEY (id),
+  CONSTRAINT slot_shelf_id_fkey FOREIGN KEY (shelf_id)
+      REFERENCES shelf (id) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE NO ACTION
+)
+
+CREATE TABLE card
+(
+  id serial NOT NULL,
+  description character varying(25),
+  slot_id integer,
+  CONSTRAINT card_pkey PRIMARY KEY (id),
+  CONSTRAINT card_slot_id_fkey FOREIGN KEY (slot_id)
+      REFERENCES slot (id) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE NO ACTION
+)
+
+CREATE TABLE port
+(
+  id serial NOT NULL,
+  description character varying(25),
+  card_id integer,
+  CONSTRAINT port_pkey PRIMARY KEY (id),
+  CONSTRAINT port_card_id_fkey FOREIGN KEY (card_id)
+      REFERENCES card (id) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE NO ACTION
+)
+
+INSERT INTO exchange (code) VALUES ('exchange1');
+
+INSERT INTO terminal_enclosure (code, exchange_number) VALUES ('terminal_enclosure1', 1);
+INSERT INTO terminal_enclosure (code, tr_number) VALUES ('terminal_enclosure1', 1);
+INSERT INTO terminal_enclosure (code, tr_number) VALUES ('terminal_enclosure1', 2);
+INSERT INTO terminal_enclosure (code, tr_number) VALUES ('terminal_enclosure1', 3);
+
+INSERT INTO bay (description, exchange_id) VALUES ('bay1', 1);
+
+INSERT INTO shelf (description, bay_id) VALUES ('shelf1', 1);
+
+INSERT INTO slot (description, shelf_id) VALUES ('slot1', 1);
+
+INSERT INTO card (description, slot_id) VALUES ('card1', 1);
+
+INSERT INTO port (description, card_id) VALUES ('port1', 1);
+INSERT INTO port (description, card_id) VALUES ('port2', 1);
+INSERT INTO port (description, card_id) VALUES ('port3', 1);
+
+select exchange.id, exchange.code from exchange
+inner join terminal_enclosure t1 on t1.exchange_number = exchange.id
+inner join terminal_enclosure t2 on t2.tr_number = t1.id
+inner join terminal_enclosure t3 on t3.tr_number = t2.id
+inner join terminal_enclosure t4 on t4.tr_number = t3.id
+where t1.id = 1 or t2.id = 1 or t3.id = 1 or t4.id = 1;
+
+select exchange.id as exchange_id, exchange.code, bay.id as bay_id, bay.description, shelf.id as shelf_id, shelf.description, slot.id as slot_id, slot.description, card.id as card_id, card.description, port.id as port_id, port.description from port
+inner join card on card.id = port.card_id
+inner join slot on slot.id = card.slot_id
+inner join shelf on shelf.id = slot.shelf_id
+inner join bay on bay.id = shelf.bay_id
+inner join exchange on exchange.id = bay.exchange_id
+where exchange.id = 1
